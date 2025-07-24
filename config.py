@@ -20,5 +20,5 @@ MAX_REQUESTS_HISTORY = 1000  # 最大保存的请求历史数量
 PAGE_SIZE = 20  # 每页显示的请求数量
 
 # 默认APIKEY配置
-DEFAULT_APIKEY = "sk-hntsz-free-key"  # 默认管理员APIKEY
+DEFAULT_APIKEY = os.getenv("DEFAULT_APIKEY","")  # 默认APIKEY
 SUPER_ADMIN_APIKEY = os.getenv("SUPER_ADMIN_APIKEY","")  # 管理员APIKEY

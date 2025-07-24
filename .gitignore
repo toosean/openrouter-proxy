@@ -1,0 +1,41 @@
+# Python缓存、虚拟环境和常见IDE配置
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.log
+*.pot
+*.mo
+
+# 虚拟环境
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# VSCode配置
+.vscode/
+
+# PyCharm配置
+.idea/
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# 环境变量和敏感信息
+.env.*
+.env
+
+# 依赖包
+*.egg-info/
+dist/
+build/
+
+# 其他
+*.bak
+*.swp
+*.swo

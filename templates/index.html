@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAI 代理监控</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-left">
+                <h1><i class="fas fa-network-wired"></i> OpenAI 代理监控</h1>
+                <div class="user-info">
+                    {% if is_admin %}
+                    <span class="user-badge admin"><i class="fas fa-crown"></i> 管理员</span>
+                    {% else %}
+                    <span class="user-badge user"><i class="fas fa-user"></i> {{ current_apikey[:10] }}...</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="stats" id="stats">
+                    <div class="stat-item">
+                        <span class="stat-label">总请求数:</span>
+                        <span class="stat-value" id="total-requests">{{ total_count }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">成功率:</span>
+                        <span class="stat-value" id="success-rate">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">平均响应时间:</span>
+                        <span class="stat-value" id="avg-response-time">-</span>
+                    </div>
+                </div>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> 退出
+                </button>
+            </div>
+        </header>
+
+        <div class="controls">
+            <form class="search-form" method="get">
+                <div class="search-group">
+                    <input type="text" name="search" placeholder="搜索请求..." value="{{ search }}" class="search-input">
+                    <button type="submit" class="search-btn"><i class="fas fa-search"></i></button>
+                    {% if search %}
+                    <a href="/" class="clear-btn"><i class="fas fa-times"></i></a>
+                    {% endif %}
+                </div>
+            </form>
+            <button class="refresh-btn" onclick="location.reload()">
+                <i class="fas fa-sync-alt"></i> 刷新
+            </button>
+        </div>
+
+        <div class="requests-container">
+            {% if requests %}
+            <div class="requests-list">
+                {% for request in requests %}
+                <div class="request-item" onclick="viewRequest('{{ request.id }}')">
+                    <div class="request-header">
+                        <span class="method method-{{ request.method.lower() }}">{{ request.method }}</span>
+                        <span class="url">{{ request.url }}</span>
+                        <span class="timestamp">{{ request.timestamp.strftime('%H:%M:%S') }}</span>
+                    </div>
+                    <div class="request-details">
+                        {% if request.response_status %}
+                        <span class="status status-{{ 'success' if request.response_status < 400 else 'error' }}">
+                            {{ request.response_status }}
+                        </span>
+                        {% else %}
+                        <span class="status status-pending">处理中</span>
+                        {% endif %}
+                        
+                        {% if request.duration_ms %}
+                        <span class="duration">{{ "%.2f"|format(request.duration_ms) }}ms</span>
+                        {% endif %}
+                        
+                        {% if request.error %}
+                        <span class="error-indicator"><i class="fas fa-exclamation-triangle"></i></span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- 分页 -->
+            {% if total_pages > 1 %}
+            <div class="pagination">
+                {% if current_page > 1 %}
+                <a href="?page={{ current_page - 1 }}{% if search %}&search={{ search }}{% endif %}" class="page-btn">
+                    <i class="fas fa-chevron-left"></i> 上一页
+                </a>
+                {% endif %}
+                
+                <span class="page-info">
+                    第 {{ current_page }} 页，共 {{ total_pages }} 页
+                </span>
+                
+                {% if current_page < total_pages %}
+                <a href="?page={{ current_page + 1 }}{% if search %}&search={{ search }}{% endif %}" class="page-btn">
+                    下一页 <i class="fas fa-chevron-right"></i>
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <h3>暂无请求记录</h3>
+                <p>当有API请求通过代理时，它们将显示在这里</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+    <script>
+        // 获取当前API Key参数
+        const currentApiKey = '{{ current_apikey }}';
+        
+        function viewRequest(requestId) {
+            window.open(`/request/${requestId}`, '_blank');
+        }
+        
+        function logout() {
+            // 清除Cookie
+            document.cookie = 'apikey=; path=/; max-age=0';
+            
+            // 跳转到登录页面
+            window.location.href = '/login';
+        }
+        
+        // 修改表单提交以包含API Key
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchForm = document.querySelector('.search-form');
+            if (searchForm) {
+                searchForm.addEventListener('submit', function(e) {
+                    const formData = new FormData(searchForm);
+                    const search = formData.get('search');
+                    const currentUrl = new URL(window.location);
+                    currentUrl.searchParams.set('apikey', currentApiKey);
+                    if (search) {
+                        currentUrl.searchParams.set('search', search);
+                    } else {
+                        currentUrl.searchParams.delete('search');
+                    }
+                    window.location.href = currentUrl.toString();
+                    e.preventDefault();
+                });
+            }
+            
+            // 修改分页链接
+            const pageLinks = document.querySelectorAll('.page-btn');
+            pageLinks.forEach(link => {
+                const url = new URL(link.href, window.location.origin);
+                url.searchParams.set('apikey', currentApiKey);
+                link.href = url.toString();
+            });
+        });
+        
+        // 定期更新统计信息
+        setInterval(updateStats, 5000);
+        updateStats(); // 立即执行一次
+    </script>
+</body>
+</html>

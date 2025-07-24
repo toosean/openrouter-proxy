@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Key 验证 - OpenAI 代理监控</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .login-box {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .login-header {
+            margin-bottom: 30px;
+        }
+        
+        .login-header h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .login-header p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .login-form {
+            width: 100%;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .login-btn:hover {
+            background: #5a6fd8;
+        }
+        
+        .login-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .default-key-hint {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #666;
+            border-left: 4px solid #667eea;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
+        }
+        
+        .checkbox-group label {
+            margin-bottom: 0;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <div class="login-header">
+                <h1><i class="fas fa-key"></i> API Key</h1>
+                <p>请输入您的API Key以查看相关请求记录</p>
+            </div>
+            
+            <form class="login-form" id="loginForm">
+                <div class="form-group">
+                    <label for="apikey">API Key:</label>
+                    <input type="text" id="apikey" name="apikey" placeholder="输入您的API Key" required>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="remember" checked>
+                    <label for="remember">记住此API Key</label>
+                </div>
+                
+                <button type="submit" class="login-btn">
+                    <i class="fas fa-sign-in-alt"></i> 登录
+                </button>
+                
+                <div class="error-message" id="errorMessage"></div>
+            </form>
+            
+            <div class="default-key-hint">
+                <strong>提示:</strong> 可使用 <code>{{ default_apikey }}</code> 作为默认API Key。
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载时尝试从缓存读取API Key，如果没有则使用默认API Key
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedApiKey = localStorage.getItem('openai_proxy_apikey');
+            const apikeyInput = document.getElementById('apikey');
+            
+            if (savedApiKey) {
+                apikeyInput.value = savedApiKey;
+            } else {
+                // 首次访问时使用默认API Key
+                apikeyInput.value = '{{ default_apikey }}';
+            }
+        });
+
+        // 处理登录表单提交
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const apikey = document.getElementById('apikey').value.trim();
+            const remember = document.getElementById('remember').checked;
+            const errorMessage = document.getElementById('errorMessage');
+            
+            if (!apikey) {
+                showError('请输入API Key');
+                return;
+            }
+            
+            // 验证API Key (这里简单验证长度，实际可以发送到后端验证)
+            if (apikey.length < 3) {
+                showError('API Key格式不正确');
+                return;
+            }
+            
+            // 保存到localStorage
+            if (remember) {
+                localStorage.setItem('openai_proxy_apikey', apikey);
+            } else {
+                localStorage.removeItem('openai_proxy_apikey');
+            }
+            
+            // 设置Cookie供后端认证使用
+            document.cookie = `apikey=${apikey}; path=/; max-age=${remember ? 86400 * 30 : 86400}`;
+            
+            // 跳转到主页
+            window.location.href = '/';
+        });
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

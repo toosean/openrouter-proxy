@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  openai-proxy:
+    build: .
+    container_name: openai-proxy
+    ports:
+      - "8080:8080"  # 代理服务器端口
+      - "8081:8081"  # Web界面端口
+    environment:
+      - PROXY_HOST=0.0.0.0
+      - PROXY_PORT=8080
+      - WEB_HOST=0.0.0.0
+      - WEB_PORT=8081
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

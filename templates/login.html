@@ -154,7 +154,7 @@
                 <div class="error-message" id="errorMessage"></div>
             </form>
             
-            {% if default_apikey %}
+            {% if default_apikey and default_apikey.strip() %}
             <div class="default-key-hint">
                 <strong>提示:</strong> 可使用 <code>{{ default_apikey }}</code> 作为默认API Key。
             </div>

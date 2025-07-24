@@ -10,7 +10,7 @@ WEB_HOST = os.getenv("WEB_HOST", "127.0.0.1")
 WEB_PORT = int(os.getenv("WEB_PORT", "8081"))
 
 # OpenAI API配置
-OPENAI_API_BASE = "https://openrouter.ai/"
+OPENAI_API_BASE = "https://openrouter.ai"
 
 # 日志配置
 LOG_LEVEL = "INFO"

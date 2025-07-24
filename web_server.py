@@ -38,6 +38,26 @@ def should_filter_by_apikey(apikey: str) -> str:
     return apikey
 
 @web.middleware
+async def cors_middleware(request: web.Request, handler):
+    """CORS中间件"""
+    # 处理预检请求
+    if request.method == 'OPTIONS':
+        response = web.Response()
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = '*'
+        response.headers['Access-Control-Max-Age'] = '86400'
+        return response
+    
+    # 处理实际请求
+    response = await handler(request)
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = '*'
+    
+    return response
+
+@web.middleware
 async def auth_middleware(request: web.Request, handler):
     """认证中间件"""
     # 登录页面和静态文件不需要认证
@@ -165,7 +185,7 @@ class WebServer:
 
 async def create_web_app() -> web.Application:
     """创建Web应用"""
-    app = web.Application(middlewares=[auth_middleware])
+    app = web.Application(middlewares=[cors_middleware, auth_middleware])
 
     # 设置模板引擎
     template_dir = Path(__file__).parent / 'templates'
